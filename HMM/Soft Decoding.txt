@@ -1,0 +1,65 @@
+import math
+import numpy as np
+from os.path import dirname
+import itertools
+
+def Likelihood_DP(t_matrix,e_matrix,alphabet,states,text):
+	graph = np.zeros(shape=(len(states),len(text)),dtype=float)
+	for k in range(len(states)):
+		graph[k][0] = 1/len(states) * e_matrix[k][alphabet[text[0]]]
+	for i in range(1,len(text)):
+		for k in range(len(states)):
+			graph[k][i] = sum([graph[l][i-1]*t_matrix[l][k]*e_matrix[k][alphabet[text[i]]] for l in range(len(states))])
+	lastValue = sum([i[-1] for i in graph])
+
+	return [lastValue,graph] # ??? what ???
+	
+def tra_Likelihood_DP(t_matrix,e_matrix,alphabet,states,text):
+	l = len(text)
+	graph = np.zeros(shape=(len(states),len(text)),dtype=float)
+	for k in range(len(states)):
+		graph[k][l-1] = 1  #1/len(states) * e_matrix[k][alphabet[text[-1]]]
+	for i in range(l-2,-1,-1):
+		for k in range(len(states)):
+			graph[k][i] = sum([graph[kk][i+1]*t_matrix[k][kk]*e_matrix[kk][alphabet[text[i+1]]] for kk in range(len(states))])
+	lastValue = sum([i[0] for i in graph])
+
+	return [lastValue,graph] # ??? what ???
+
+
+def Soft_Decoding(text,alphabet,states,transition,emission):
+	[lastValue,graph] = Likelihood_DP(transition,emission,alphabet,states,text)
+	[tra_lastValue,tra_graph] = tra_Likelihood_DP(transition,emission,alphabet,states,text)
+	
+	print(lastValue,tra_lastValue,'\n')
+	print('\t'.join(stateSet))
+	for i in range(len(text)):
+		for j in range(len(states)):
+			print('{:.3f}'.format(graph[j][i]*tra_graph[j][i]/lastValue),end=' ')
+		print('')
+
+def responsibility_profile():
+	tran = itertools.product(stateSet,repeat=2)
+	print(list(tran))
+	responsibility_matrix = [[] for k in range(len(states))]
+	'''
+	[lastValue,graph] = Likelihood_DP(transition,emission,alphabet,states,text)
+	[tra_lastValue,tra_graph] = tra_Likelihood_DP(transition,emission,alphabet,states,text)
+	for i in range(len(text)):
+		for j in range(len(states)):
+	'''		
+
+if __name__ == '__main__':
+	dataset = open(dirname(__file__)+'dataset.txt').read().strip().split('\n--------\n')
+	iterTime = dataset[0]
+	text = dataset[1]
+	alphSet = dataset[2].split()
+	alphabet = dict([[alphSet[i],i] for i in range(len(alphSet))])
+	stateSet = dataset[3].split()
+	states = dict([[stateSet[i],i] for i in range(len(stateSet))])
+	transition = [list(map(float,line.split()[1:])) for line in dataset[4].split('\n')[1:]]
+	emission = [list(map(float,line.split()[1:])) for line in dataset[5].split('\n')[1:]]
+	
+	Soft_Decoding(text,alphabet,states,transition,emission)
+	
+	#responsibility_profile()
